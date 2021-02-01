@@ -20,13 +20,13 @@ class AccountService (private val accountRepository: AccountRepository){
             throw DocumentAlreadyExists("Document ${account.document} already exists.")
         }
 
-        val accountEntity = AccountEntity(id = account.id, name = account.name, document = account.document, balance = account.balance)
+        val accountEntity = AccountEntity(accountNumber = account.accountNumber, name = account.name, document = account.document, balance = account.balance)
         val createdAccount = this.accountRepository.save(accountEntity)
-        return Account(id= createdAccount.id, name = createdAccount.name, document = createdAccount.document, balance = createdAccount.balance)
+        return Account(accountNumber= createdAccount.accountNumber, name = createdAccount.name, document = createdAccount.document, balance = createdAccount.balance)
     }
 
     fun findAll(): List<Account> {
-        return this.accountRepository.findAll().map { accountEntity -> Account(id= accountEntity.id, name = accountEntity.name, document = accountEntity.document, balance = accountEntity.balance) }
+        return this.accountRepository.findAll().map { accountEntity -> Account(accountNumber= accountEntity.accountNumber, name = accountEntity.name, document = accountEntity.document, balance = accountEntity.balance) }
     }
 
 }

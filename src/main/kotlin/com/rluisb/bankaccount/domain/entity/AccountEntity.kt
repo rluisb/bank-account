@@ -7,7 +7,7 @@ import org.springframework.data.mongodb.core.mapping.Document
 @Document(collection = "accounts")
 data class AccountEntity(
     @Id
-    val id: String?,
+    val accountNumber: String?,
     val name: String,
     @Indexed
     val document: String,

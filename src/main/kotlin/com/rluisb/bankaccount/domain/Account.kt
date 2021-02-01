@@ -5,7 +5,7 @@ import java.util.*
 
 
 class Account(
-    val id: String? = null,
+    val accountNumber: String? = null,
     val name: String,
     val document: String,
     val balance: Long = 0

@@ -10,5 +10,5 @@ data class ErrorsDetails(
         .withZone(ZoneOffset.UTC)
         .format(Instant.now()),
     val message: String,
-    val details: String
+    val details: Any?
 )
