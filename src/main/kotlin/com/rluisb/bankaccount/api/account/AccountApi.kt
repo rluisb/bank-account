@@ -3,6 +3,7 @@ package com.rluisb.bankaccount.api.account
 import com.rluisb.bankaccount.api.account.dto.request.AccountRequest
 import com.rluisb.bankaccount.api.account.dto.request.DepositRequest
 import com.rluisb.bankaccount.api.account.dto.response.AccountResponse
+import com.rluisb.bankaccount.api.account.dto.response.DepositResponse
 import com.rluisb.bankaccount.domain.Account
 import com.rluisb.bankaccount.service.AccountService
 import io.swagger.annotations.Api
@@ -17,7 +18,14 @@ import javax.validation.Valid
 @RequestMapping(value = ["account"], produces = [MediaType.APPLICATION_JSON_VALUE])
 @Api("Account API")
 @Validated
-class AccountApi(private val accountService: AccountService, private val logger: Logger) {
+class AccountApi(
+    private val logger: Logger,
+    private val accountService: AccountService
+) {
+
+    companion object {
+        const val LIMIT_FOR_DEPOSIT_OPERATION: Long = 2000L;
+    }
 
     @PostMapping(consumes = [MediaType.APPLICATION_JSON_VALUE])
     fun create(@Valid @RequestBody accountRequest: AccountRequest): ResponseEntity<AccountResponse> {
@@ -43,27 +51,15 @@ class AccountApi(private val accountService: AccountService, private val logger:
         return ResponseEntity.ok(accountResponse)
     }
 
-    @PatchMapping("{accountNumber}", consumes = [MediaType.APPLICATION_JSON_VALUE])
+    @PatchMapping("{accountNumber}/deposit", consumes = [MediaType.APPLICATION_JSON_VALUE])
     fun deposit(
         @PathVariable("accountNumber") accountNumber: String,
         @Valid @RequestBody depositRequest: DepositRequest
     ): ResponseEntity<AccountResponse> {
         this.logger.info("Starting deposit with values: {} for account: {}", depositRequest.toString(), accountNumber)
 
-        this.logger.info("Searching account for accountNumber: {}", accountNumber)
-        val account = this.accountService.findByAccountNumber(accountNumber)!!
-
-        this.logger.info("Account found: {}", account.toString())
-        this.logger.info("Updating balance with value: {}", depositRequest.amount)
-
         this.logger.info("Executing account deposit.")
-        val accountWithBalanceForUpdate = Account(
-            accountNumber = account.accountNumber,
-            name = account.name,
-            document = account.document,
-            balance = depositRequest.amount
-        )
-        val updatedAccount = this.accountService.deposit(accountWithBalanceForUpdate)
+        val updatedAccount = this.accountService.deposit(accountNumber = accountNumber, depositRequest = depositRequest)
         this.logger.info("Account balance updated successfully: {}", updatedAccount.toString())
 
         val accountResponse = AccountResponse(
@@ -78,20 +74,59 @@ class AccountApi(private val accountService: AccountService, private val logger:
         return ResponseEntity.ok(accountResponse)
     }
 
+//    @PatchMapping("{accountNumber}/transfer", consumes = [MediaType.APPLICATION_JSON_VALUE])
+//    fun exchange(
+//        @PathVariable("accountNumber") accountNumber: String,
+//        @Valid @RequestBody depositRequest: DepositRequest
+//    ): ResponseEntity<AccountResponse> {
+//        this.logger.info("Starting transfer with values: {} for account: {}", depositRequest.toString(), accountNumber)
+//
+//        this.logger.info("Executing account deposit.")
+//        val updatedAccount = this.accountService.deposit(accountNumber = accountNumber, depositRequest = depositRequest)
+//        this.logger.info("Account balance updated successfully: {}", updatedAccount.toString())
+//
+//        val accountResponse = AccountResponse(
+//            accountNumber = updatedAccount.accountNumber,
+//            name = updatedAccount.name,
+//            document = updatedAccount.document,
+//            balance = updatedAccount.balance
+//        )
+//
+//        this.logger.info("Account response: {}", accountResponse.toString())
+//
+//        return ResponseEntity.ok(accountResponse)
+//    }
+
     @GetMapping
     fun getAllAccounts(): ResponseEntity<List<AccountResponse>> {
         this.logger.info("Fetching all existing accounts.")
-        val accountList = this.accountService.findAll().map { account ->
+        val accountList = this.accountService.findAll().map {
             AccountResponse(
-                accountNumber = account.accountNumber,
-                name = account.name,
-                document = account.document,
-                balance = account.balance
+                accountNumber = it.accountNumber,
+                name = it.name,
+                document = it.document,
+                balance = it.balance
             )
         }
 
         this.logger.info("Accounts found: {}", accountList)
 
         return ResponseEntity.ok(accountList)
+    }
+
+    @GetMapping("{accountNumber}")
+    fun getAllDepositsForAccount(@PathVariable("accountNumber") accountNumber: String): ResponseEntity<List<DepositResponse>> {
+        this.logger.info("Fetching all existing deposits for account.")
+        val accountDepositList = this.accountService.findAllDeposits(accountNumber).map {
+            DepositResponse(
+                accountNumber = it.accountNumber,
+                amount = it.amount,
+                time = it.time
+            )
+        }
+
+        this.logger.info("Accounts deposits found: {}", accountDepositList)
+
+        return ResponseEntity.ok(accountDepositList)
     }
 }
