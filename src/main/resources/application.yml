@@ -1,0 +1,15 @@
+server:
+  context-path: /api/bank-account
+  port: 8080
+
+spring:
+  application:
+    name: bank-account
+  data:
+    mongodb:
+      host: localhost
+      port: 27017
+      authentication-database: admin
+      username: admin
+      password: admin
+      database: bank-account
