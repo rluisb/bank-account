@@ -46,7 +46,7 @@ class ControllerAdviceRequestError : ResponseEntityExceptionHandler() {
         request: WebRequest
     ): ResponseEntity<Any> {
         val errorDetails = ErrorsDetails(
-            message = "Document validation failed",
+            message = "Invalid request arguments",
             details = ex
                 .bindingResult
                 .fieldErrors
