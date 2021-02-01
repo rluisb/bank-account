@@ -1,6 +1,7 @@
 server:
-  context-path: /api/bank-account
   port: 8080
+  servlet:
+    context-path: /api/bank-account
 
 spring:
   application:
