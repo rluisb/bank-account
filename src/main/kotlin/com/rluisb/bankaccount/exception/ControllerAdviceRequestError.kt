@@ -1,9 +1,6 @@
 package com.rluisb.bankaccount.exception
 
-import com.rluisb.bankaccount.exception.custom.AccountNotFoundException
-import com.rluisb.bankaccount.exception.custom.DocumentAlreadyExistsException
-import com.rluisb.bankaccount.exception.custom.ErrorsDetails
-import com.rluisb.bankaccount.exception.custom.InvalidDocumentException
+import com.rluisb.bankaccount.exception.custom.*
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
@@ -42,6 +39,24 @@ class ControllerAdviceRequestError : ResponseEntityExceptionHandler() {
     fun handleAccountNotFoundException(ex: AccountNotFoundException, request: WebRequest): ResponseEntity<ErrorsDetails> {
         val errorDetails = ErrorsDetails(
             message = "Account Not Found",
+            details = ex.message!!
+        )
+        return ResponseEntity(errorDetails, HttpStatus.UNPROCESSABLE_ENTITY)
+    }
+
+    @ExceptionHandler(value = [(InvalidValueForDepositException::class)])
+    fun handleInvalidValueForDepositException(ex: InvalidValueForDepositException, request: WebRequest): ResponseEntity<ErrorsDetails> {
+        val errorDetails = ErrorsDetails(
+            message = "Invalid value for deposit",
+            details = ex.message!!
+        )
+        return ResponseEntity(errorDetails, HttpStatus.UNPROCESSABLE_ENTITY)
+    }
+
+    @ExceptionHandler(value = [(InvalidValueForTransferException::class)])
+    fun handleInvalidValueForTransferException(ex: InvalidValueForTransferException, request: WebRequest): ResponseEntity<ErrorsDetails> {
+        val errorDetails = ErrorsDetails(
+            message = "Invalid value for transfer",
             details = ex.message!!
         )
         return ResponseEntity(errorDetails, HttpStatus.UNPROCESSABLE_ENTITY)

@@ -2,9 +2,11 @@ package com.rluisb.bankaccount.api.account
 
 import com.rluisb.bankaccount.api.account.dto.request.AccountRequest
 import com.rluisb.bankaccount.api.account.dto.request.DepositRequest
+import com.rluisb.bankaccount.api.account.dto.request.TransferRequest
 import com.rluisb.bankaccount.api.account.dto.response.AccountResponse
 import com.rluisb.bankaccount.api.account.dto.response.DepositResponse
 import com.rluisb.bankaccount.domain.Account
+import com.rluisb.bankaccount.domain.Transfer
 import com.rluisb.bankaccount.service.AccountService
 import io.swagger.annotations.Api
 import org.slf4j.Logger
@@ -74,28 +76,36 @@ class AccountApi(
         return ResponseEntity.ok(accountResponse)
     }
 
-//    @PatchMapping("{accountNumber}/transfer", consumes = [MediaType.APPLICATION_JSON_VALUE])
-//    fun exchange(
-//        @PathVariable("accountNumber") accountNumber: String,
-//        @Valid @RequestBody depositRequest: DepositRequest
-//    ): ResponseEntity<AccountResponse> {
-//        this.logger.info("Starting transfer with values: {} for account: {}", depositRequest.toString(), accountNumber)
-//
-//        this.logger.info("Executing account deposit.")
-//        val updatedAccount = this.accountService.deposit(accountNumber = accountNumber, depositRequest = depositRequest)
-//        this.logger.info("Account balance updated successfully: {}", updatedAccount.toString())
-//
-//        val accountResponse = AccountResponse(
-//            accountNumber = updatedAccount.accountNumber,
-//            name = updatedAccount.name,
-//            document = updatedAccount.document,
-//            balance = updatedAccount.balance
-//        )
-//
-//        this.logger.info("Account response: {}", accountResponse.toString())
-//
-//        return ResponseEntity.ok(accountResponse)
-//    }
+    @PatchMapping("{originAccountNumber}/transfer", consumes = [MediaType.APPLICATION_JSON_VALUE])
+    fun transfer(
+        @PathVariable("originAccountNumber") originAccountNumber: String,
+        @Valid @RequestBody transferRequest: TransferRequest
+    ): ResponseEntity<AccountResponse> {
+        this.logger.info("Starting transfer with values: {} from account: {}", originAccountNumber, transferRequest.targetAccountNumber)
+
+        this.logger.info("Converting transferRequest to Transfer domain.")
+        val transferForUpdate = Transfer(
+            originAccountNumber=originAccountNumber,
+            targetAccountNumber = transferRequest.targetAccountNumber,
+            amount = transferRequest.amount
+        )
+        this.logger.info("Converted transfer domain: {}", transferForUpdate.toString())
+
+        this.logger.info("Executing account transfer.")
+        val updatedAccount = this.accountService.transfer(transferForUpdate)
+        this.logger.info("Transfer executed successfully: {}", updatedAccount.toString())
+
+        val accountResponse = AccountResponse(
+            accountNumber = updatedAccount.accountNumber,
+            name = updatedAccount.name,
+            document = updatedAccount.document,
+            balance = updatedAccount.balance
+        )
+
+        this.logger.info("Account response: {}", accountResponse.toString())
+
+        return ResponseEntity.ok(accountResponse)
+    }
 
     @GetMapping
     fun getAllAccounts(): ResponseEntity<List<AccountResponse>> {
@@ -119,7 +129,6 @@ class AccountApi(
         this.logger.info("Fetching all existing deposits for account.")
         val accountDepositList = this.accountService.findAllDeposits(accountNumber).map {
             DepositResponse(
-                accountNumber = it.accountNumber,
                 amount = it.amount,
                 time = it.time
             )

@@ -9,6 +9,8 @@ data class TransferTransactionEntity(
     @Id
     val id: String? = null,
     val originAccountNumber: String,
-    val destinationAccountNumber: String,
-    val amount: Long
+    @Indexed
+    val targetAccountNumber: String,
+    val amount: Long,
+    val time: String
 )

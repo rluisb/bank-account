@@ -3,14 +3,14 @@ package com.rluisb.bankaccount.service
 import com.rluisb.bankaccount.api.account.dto.request.DepositRequest
 import com.rluisb.bankaccount.domain.Account
 import com.rluisb.bankaccount.domain.Deposit
+import com.rluisb.bankaccount.domain.Transfer
 import com.rluisb.bankaccount.domain.entity.AccountEntity
 import com.rluisb.bankaccount.domain.entity.DepositTransactionEntity
-import com.rluisb.bankaccount.exception.custom.AccountNotFoundException
-import com.rluisb.bankaccount.exception.custom.DocumentAlreadyExistsException
-import com.rluisb.bankaccount.exception.custom.InvalidDocumentException
-import com.rluisb.bankaccount.exception.custom.InvalidValueForDepositException
+import com.rluisb.bankaccount.domain.entity.TransferTransactionEntity
+import com.rluisb.bankaccount.exception.custom.*
 import com.rluisb.bankaccount.repository.AccountRepository
 import com.rluisb.bankaccount.repository.DepositTransactionRepository
+import com.rluisb.bankaccount.repository.TransferTransactionRepository
 import org.slf4j.Logger
 
 import org.springframework.stereotype.Service
@@ -19,12 +19,14 @@ import org.springframework.stereotype.Service
 class AccountService(
     private val logger: Logger,
     private val accountRepository: AccountRepository,
-    private val depositTransactionRepository: DepositTransactionRepository
+    private val depositTransactionRepository: DepositTransactionRepository,
+    private val transferTransactionRepository: TransferTransactionRepository
 ) {
 
     companion object {
         const val MIN_LIMIT_FOR_DEPOSIT_OPERATION: Long = 0L
         const val MAX_LIMIT_FOR_DEPOSIT_OPERATION: Long = 2000L
+        const val MIN_LIMIT_FOR_TRANSFER_OPERATION: Long = 0L
     }
 
     fun create(account: Account): Account {
@@ -176,6 +178,97 @@ class AccountService(
         return this.depositTransactionRepository.findAllByAccountNumberOrderByTime(accountNumber).map {
             Deposit(
                 accountNumber = it.accountNumber,
+                amount = it.amount,
+                time = it.time
+            )
+        }
+    }
+
+    fun transfer(transfer: Transfer): Account {
+        this.logger.info(
+            "Starting transfer from account: {} to account: {}",
+            transfer.originAccountNumber,
+            transfer.targetAccountNumber
+        )
+
+        this.logger.info("Searching account for originAccountNumber: {}", transfer.originAccountNumber)
+        val originAccount = this.findByAccountNumber(transfer.originAccountNumber)!!
+        this.logger.info("Origin account found: {}", originAccount.toString())
+
+        this.logger.info("Searching account for targetAccountNumber: {}", transfer.targetAccountNumber)
+        val targetAccount = this.findByAccountNumber(transfer.targetAccountNumber)!!
+        this.logger.info("Target account found: {}", targetAccount.toString())
+
+
+        this.logger.info("Validating amount for transfer.")
+        if (transfer.amount < MIN_LIMIT_FOR_TRANSFER_OPERATION) {
+            val message = "Value ${transfer.amount} cannot be negative."
+            this.logger.error(message)
+            throw InvalidValueForTransferException(message)
+        }
+
+        if (originAccount.balance.minus(transfer.amount) < MIN_LIMIT_FOR_TRANSFER_OPERATION) {
+            val message = "Value for transfer cannot turn originAccount balance negative. Balance after transfer will be: ${originAccount.balance.minus(transfer.amount)}"
+            this.logger.error(message)
+            throw InvalidValueForTransferException(message)
+        }
+
+        this.logger.info("Updating origin account balance.")
+
+        val originAccountForUpdate = AccountEntity(
+            accountNumber = originAccount.accountNumber,
+            name = originAccount.name,
+            document = originAccount.document,
+            balance = originAccount.balance.minus(transfer.amount),
+        )
+
+        val updatedOriginAccountEntity = this.accountRepository.save(originAccountForUpdate)
+
+        this.logger.info("Updated origin account entity: {}", updatedOriginAccountEntity.toString())
+        this.logger.info("Converting OriginAccountEntity to OriginAccount.")
+        val updatedOriginAccount = Account(
+            accountNumber = updatedOriginAccountEntity.accountNumber,
+            name = updatedOriginAccountEntity.name,
+            document = updatedOriginAccountEntity.document,
+            balance = updatedOriginAccountEntity.balance
+        )
+        this.logger.info("Converted OriginAccount: {}", updatedOriginAccount.toString())
+
+        this.logger.info("Updated target account entity: {}", updatedOriginAccountEntity.toString())
+        this.logger.info("Converting TargetAccountEntity to TargetAccount.")
+        val targetAccountForUpdate = AccountEntity(
+            accountNumber = targetAccount.accountNumber,
+            name = targetAccount.name,
+            document = targetAccount.document,
+            balance = targetAccount.balance.plus(transfer.amount),
+        )
+        this.logger.info("Converted TargetAccount: {}", targetAccountForUpdate.toString())
+
+        this.accountRepository.save(targetAccountForUpdate)
+
+        this.logger.info("Generating transfer transaction information: {}", transfer.toString())
+        this.logger.info("Converting Transfer to TransferTransactionEntity.")
+        val transferTransactionEntity = TransferTransactionEntity(
+            originAccountNumber = transfer.originAccountNumber,
+            targetAccountNumber = transfer.targetAccountNumber,
+            amount = transfer.amount,
+            time = transfer.time
+        )
+
+        this.logger.info("Converted TransferTransactionEntity: {}", transferTransactionEntity.toString())
+        this.logger.info("Saving transfer transaction for account number: {}", transfer.originAccountNumber)
+        val savedDepositTransaction = this.transferTransactionRepository.insert(transferTransactionEntity)
+        this.logger.info("Saved transfer transaction for account number: {}", savedDepositTransaction.toString())
+
+        return updatedOriginAccount
+    }
+
+    fun findAllTransfers(originAccountNumber: String): List<Transfer> {
+        this.logger.info("Starting search for transfers by originAccountNumber: {}", originAccountNumber)
+        return this.transferTransactionRepository.findAllByOriginAccountNumberOrderByTime(originAccountNumber).map {
+            Transfer(
+                originAccountNumber = it.originAccountNumber,
+                targetAccountNumber = it.targetAccountNumber,
                 amount = it.amount,
                 time = it.time
             )
