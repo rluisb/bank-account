@@ -191,6 +191,12 @@ class AccountService(
             transfer.targetAccountNumber
         )
 
+        if (transfer.targetAccountNumber == transfer.originAccountNumber) {
+            val message = "Target account: ${transfer.targetAccountNumber} cannot be equal to Origin account: ${transfer.originAccountNumber}"
+            this.logger.error(message)
+            throw InvalidTargetAccountForTransferException(message)
+        }
+
         this.logger.info("Searching account for originAccountNumber: {}", transfer.originAccountNumber)
         val originAccount = this.findByAccountNumber(transfer.originAccountNumber)!!
         this.logger.info("Origin account found: {}", originAccount.toString())

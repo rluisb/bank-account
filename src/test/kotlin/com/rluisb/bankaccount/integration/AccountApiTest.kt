@@ -421,5 +421,70 @@ internal class AccountApiTest @Autowired constructor(
             }
         }
 
+        @Test
+        fun `should return error because target account can't be equal to origin account`() {
+            val originAccountRequest = AccountRequest(name = "John Doe", document = "616.931.250-56")
+
+            val originAccountResponseByteArray = mockMvc.post(baseUrl) {
+                contentType = MediaType.APPLICATION_JSON
+                content = objectMapper.writeValueAsString(originAccountRequest)
+            }.andExpect {
+                status { isOk() }
+                content { contentType(MediaType.APPLICATION_JSON)}
+                jsonPath("$.accountNumber") { isNotEmpty() }
+                jsonPath("$.name") { value(originAccountRequest.name) }
+                jsonPath("$.document") { value(originAccountRequest.document) }
+                jsonPath("$.balance") { value(0) }
+            }.andReturn().response.contentAsByteArray
+
+            val originAccountResponse = objectMapper.readValue(originAccountResponseByteArray, AccountResponse::class.java)
+
+            val targetAccountRequest = AccountRequest(name = "Foo Bar", document = "541.290.090-95")
+
+            mockMvc.post(baseUrl) {
+                contentType = MediaType.APPLICATION_JSON
+                content = objectMapper.writeValueAsString(targetAccountRequest)
+            }.andExpect {
+                status { isOk() }
+                content { contentType(MediaType.APPLICATION_JSON)}
+                jsonPath("$.accountNumber") { isNotEmpty() }
+                jsonPath("$.name") { value(targetAccountRequest.name) }
+                jsonPath("$.document") { value(targetAccountRequest.document) }
+                jsonPath("$.balance") { value(0) }
+            }
+
+            val depositRequest = DepositRequest(amount = 500L)
+
+            val originAccountWithUpdatedBalanceByteArray = mockMvc.patch("$baseUrl/${originAccountResponse.accountNumber}/deposit") {
+                contentType = MediaType.APPLICATION_JSON
+                content = objectMapper.writeValueAsString(depositRequest)
+            }.andExpect {
+                status { isOk() }
+                content { contentType(MediaType.APPLICATION_JSON)}
+                jsonPath("$.accountNumber") { isNotEmpty() }
+                jsonPath("$.name") { value(originAccountResponse.name) }
+                jsonPath("$.document") { value(originAccountResponse.document) }
+                jsonPath("$.balance") { value(depositRequest.amount) }
+            }.andReturn().response.contentAsByteArray
+
+            val originAccountWithUpdatedBalance = objectMapper.readValue(originAccountWithUpdatedBalanceByteArray, AccountResponse::class.java)
+
+            val transferRequest = TransferRequest(
+                targetAccountNumber = originAccountWithUpdatedBalance.accountNumber!!,
+                amount = 600L
+            )
+
+            mockMvc.patch("$baseUrl/${originAccountWithUpdatedBalance.accountNumber}/transfer") {
+                contentType = MediaType.APPLICATION_JSON
+                content = objectMapper.writeValueAsString(transferRequest)
+            }.andExpect {
+                status { isUnprocessableEntity() }
+                content { contentType(MediaType.APPLICATION_JSON)}
+                jsonPath("$.time") { isNotEmpty() }
+                jsonPath("$.message") { value("Invalid target account for transfer") }
+                jsonPath("$.details") { value("Target account: ${transferRequest.targetAccountNumber} cannot be equal to Origin account: ${originAccountWithUpdatedBalance.accountNumber}") }
+            }
+        }
+
     }
 }

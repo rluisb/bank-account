@@ -26,10 +26,6 @@ class AccountApi(
     private val accountService: AccountService
 ) {
 
-    companion object {
-        const val LIMIT_FOR_DEPOSIT_OPERATION: Long = 2000L;
-    }
-
     @PostMapping(consumes = [MediaType.APPLICATION_JSON_VALUE])
     fun create(@Valid @RequestBody accountRequest: AccountRequest): ResponseEntity<AccountResponse> {
         this.logger.info("Starting account creation with values: {}", accountRequest.toString())
