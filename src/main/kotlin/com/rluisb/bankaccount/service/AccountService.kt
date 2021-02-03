@@ -109,14 +109,14 @@ class AccountService(
         this.logger.info("Validating amount for deposit.")
         when {
             depositRequest.amount < MIN_LIMIT_FOR_DEPOSIT_OPERATION -> {
-                val message = "Value ${account.balance} cannot be negative."
+                val message = "Value ${depositRequest.amount} cannot be negative."
                 this.logger.error(message)
                 throw InvalidValueForDepositException(message)
             }
 
             depositRequest.amount > MAX_LIMIT_FOR_DEPOSIT_OPERATION -> {
                 val message =
-                    "Value ${account.balance} cannot exceed the security limit of $MAX_LIMIT_FOR_DEPOSIT_OPERATION."
+                    "Value ${depositRequest.amount} cannot exceed the security limit of $MAX_LIMIT_FOR_DEPOSIT_OPERATION."
                 this.logger.error(message)
                 throw InvalidValueForDepositException(message)
             }

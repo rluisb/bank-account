@@ -13,4 +13,10 @@ class Account(
     fun isDocumentValid(): Boolean {
         return this.document.isCpf(charactersToIgnore = listOf('.', '/', '-', '_'))
     }
+
+    override fun toString(): String {
+        return "Account(accountNumber=$accountNumber, name='$name', document='$document', balance=$balance)"
+    }
+
+
 }

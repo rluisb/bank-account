@@ -5,6 +5,7 @@ import com.rluisb.bankaccount.api.account.dto.request.DepositRequest
 import com.rluisb.bankaccount.api.account.dto.request.TransferRequest
 import com.rluisb.bankaccount.api.account.dto.response.AccountResponse
 import com.rluisb.bankaccount.api.account.dto.response.DepositResponse
+import com.rluisb.bankaccount.api.account.dto.response.TransferResponse
 import com.rluisb.bankaccount.domain.Account
 import com.rluisb.bankaccount.domain.Transfer
 import com.rluisb.bankaccount.service.AccountService
@@ -81,11 +82,15 @@ class AccountApi(
         @PathVariable("originAccountNumber") originAccountNumber: String,
         @Valid @RequestBody transferRequest: TransferRequest
     ): ResponseEntity<AccountResponse> {
-        this.logger.info("Starting transfer with values: {} from account: {}", originAccountNumber, transferRequest.targetAccountNumber)
+        this.logger.info(
+            "Starting transfer with values: {} from account: {}",
+            originAccountNumber,
+            transferRequest.targetAccountNumber
+        )
 
         this.logger.info("Converting transferRequest to Transfer domain.")
         val transferForUpdate = Transfer(
-            originAccountNumber=originAccountNumber,
+            originAccountNumber = originAccountNumber,
             targetAccountNumber = transferRequest.targetAccountNumber,
             amount = transferRequest.amount
         )
@@ -125,6 +130,23 @@ class AccountApi(
     }
 
     @GetMapping("{accountNumber}")
+    fun getAccountByAccountNumber(@PathVariable("accountNumber") accountNumber: String): ResponseEntity<AccountResponse> {
+        this.logger.info("Fetching account.")
+        val account = this.accountService.findByAccountNumber(accountNumber = accountNumber)!!
+
+        val accountResponse = AccountResponse(
+            accountNumber = account.accountNumber,
+            name = account.name,
+            document = account.document,
+            balance = account.balance
+        )
+
+        this.logger.info("Accounts found: {}", accountResponse)
+
+        return ResponseEntity.ok(accountResponse)
+    }
+
+    @GetMapping("{accountNumber}/deposit")
     fun getAllDepositsForAccount(@PathVariable("accountNumber") accountNumber: String): ResponseEntity<List<DepositResponse>> {
         this.logger.info("Fetching all existing deposits for account.")
         val accountDepositList = this.accountService.findAllDeposits(accountNumber).map {
@@ -137,5 +159,21 @@ class AccountApi(
         this.logger.info("Accounts deposits found: {}", accountDepositList)
 
         return ResponseEntity.ok(accountDepositList)
+    }
+
+    @GetMapping("{originAccountNumber}/transfer")
+    fun getAllTransfersForAccount(@PathVariable("originAccountNumber") originAccountNumber: String): ResponseEntity<List<TransferResponse>> {
+        this.logger.info("Fetching all existing transfers for account.")
+        val accountTransferList = this.accountService.findAllTransfers(originAccountNumber = originAccountNumber).map {
+            TransferResponse(
+                targetAccountNumber = it.targetAccountNumber,
+                amount = it.amount,
+                time = it.time
+            )
+        }
+
+        this.logger.info("Accounts transfers found: {}", accountTransferList)
+
+        return ResponseEntity.ok(accountTransferList)
     }
 }
