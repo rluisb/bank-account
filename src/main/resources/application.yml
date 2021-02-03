@@ -1,0 +1,17 @@
+server:
+  port: 8080
+  servlet:
+    context-path: /api/bank
+  error:
+    include-message: always
+
+spring:
+  application:
+    name: bank-account
+  data:
+    mongodb:
+      host: mongodb
+      port: 27017
+      user: admin
+      password: admin
+      database: bank-account
