@@ -12,4 +12,4 @@ pluginManagement {
         }
     }
 }
-rootProject.name = "bankaccount"
+rootProject.name = "bankaccount-service"

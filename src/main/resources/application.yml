@@ -2,15 +2,16 @@ server:
   port: 8080
   servlet:
     context-path: /api/bank
+  error:
+    include-message: always
 
 spring:
   application:
     name: bank-account
   data:
     mongodb:
-      host: localhost
+      host: mongodb
       port: 27017
-      authentication-database: admin
-      username: admin
+      user: admin
       password: admin
       database: bank-account
